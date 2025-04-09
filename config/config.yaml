@@ -1,0 +1,15 @@
+app:
+  name: "file-management"
+  version: "1.0.0"
+  description: "My application"
+  baseUrl: "http://localhost:8080"
+  port: 8080
+  env: "dev"
+
+jwt:
+  secret: "file-management"
+  expire: 86400000
+  issuer: "file-management"
+
+database:
+  url: "root:root@tcp(127.0.0.1:3306)/file_db?charset=utf8mb4&parseTime=True&loc=Local"
