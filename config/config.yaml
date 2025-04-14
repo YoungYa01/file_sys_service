@@ -8,7 +8,7 @@ app:
 
 jwt:
   secret: "file-management"
-  expire: 86400000
+  expire: 24
   issuer: "file-management"
 
 database:

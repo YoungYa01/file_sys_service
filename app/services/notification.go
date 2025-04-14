@@ -54,6 +54,10 @@ func NotificationListService(c *gin.Context) (models.Result, error) {
 		Joins("left join users on notification.founder = users.id").
 		Order("pinned DESC, created_at DESC")
 
+	if err := baseQuery.Count(&total).Error; err != nil {
+		return models.Fail(500, "获取总数失败"), err
+	}
+
 	if err := baseQuery.
 		Scopes(
 			searchNotificationByParams(c),
@@ -62,9 +66,7 @@ func NotificationListService(c *gin.Context) (models.Result, error) {
 		Error; err != nil {
 		return models.Fail(500, "查询失败"), err
 	}
-	if err := baseQuery.Count(&total).Error; err != nil {
-		return models.Fail(500, "获取总数失败"), err
-	}
+
 	pagination := models.PaginationResponse{
 		Page:     c.GetInt("page"),
 		PageSize: c.GetInt("pageSize"),

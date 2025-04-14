@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -39,17 +40,21 @@ var AppGlobalConfig = new(GlobalConfig)
 
 var DB *gorm.DB
 
-func LoadConfig() {
+func LoadConfig() error {
 	// 加载配置文件
 	file, err := os.ReadFile("./config/config.yaml")
 	if err != nil {
-		return
+		return fmt.Errorf("读取配置文件失败: %v", err)
 	}
-	err = yaml.Unmarshal(file, &AppGlobalConfig)
 
-	db, err := gorm.Open(mysql.Open(AppGlobalConfig.Database.URL), &gorm.Config{})
-	if err != nil {
-		return
+	if err := yaml.Unmarshal(file, &AppGlobalConfig); err != nil {
+		return fmt.Errorf("解析配置文件失败: %v", err)
 	}
-	DB = db
+
+	DB, err = gorm.Open(mysql.Open(AppGlobalConfig.Database.URL), &gorm.Config{})
+	if err != nil {
+		return fmt.Errorf("数据库连接失败: %v", err)
+	}
+
+	return nil
 }

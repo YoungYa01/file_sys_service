@@ -136,15 +136,11 @@ func CollectionListService(c *gin.Context) (models.Result, error) {
 		return models.Fail(500, "查询失败"), err
 	}
 
-	log.Println("total is: ", total)
-	log.Println("baseCollections is: ", baseCollections)
-
 	// 第二阶段：批量获取关联数据
 	collectionIDs := make([]uint, len(baseCollections))
 	for i, c := range baseCollections {
 		collectionIDs[i] = c.ID
 	}
-	log.Println("collectionIDs is: ", collectionIDs)
 
 	// 获取创始人信息
 	var founders []models.User

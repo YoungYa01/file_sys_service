@@ -3,7 +3,9 @@ package services
 import (
 	"gin_back/app/models"
 	"gin_back/config"
+	"github.com/golang-jwt/jwt/v4"
 	"strconv"
+	"time"
 )
 
 type loginService struct {
@@ -31,13 +33,27 @@ func (*loginService) LoginService(l models.Login) (models.Result, error) {
 		return models.Fail(401, "用户已被禁用"), nil
 	}
 
-	token, err := JwtService.CreateToken(l)
+	expireHours := config.AppGlobalConfig.Jwt.Expire
+	expirationTime := time.Now().Add(time.Duration(expireHours) * time.Hour)
+
+	claims := &models.CustomClaims{
+		UserID:   user.ID,
+		UserName: user.Username,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+			Issuer:    "file_sys",
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(config.AppGlobalConfig.Jwt.Secret))
+
 	if err != nil {
 		models.Error(500, "系统错误")
 	}
 
 	response := models.LoginResponse{
-		Token:      token,
+		Token:      tokenString,
 		Age:        user.Age,
 		Email:      user.Email,
 		ID:         user.ID,

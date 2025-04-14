@@ -1,6 +1,15 @@
 package models
 
+import "github.com/golang-jwt/jwt/v4"
+
+type CustomClaims struct {
+	UserID   int    `json:"user_id"`
+	UserName string `json:"user_name"`
+	jwt.StandardClaims
+}
+
 type Login struct {
+	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }

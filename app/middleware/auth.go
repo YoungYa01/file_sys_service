@@ -9,25 +9,29 @@ import (
 
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 获取token
 		token := c.Request.Header.Get("token")
 		if token == "" {
 			c.JSON(200, models.Error(401, "token不能为空"))
 			c.Abort()
 			return
 		}
+
+		// 修改Claims类型为CustomClaims
 		claims, err := jwt.ParseWithClaims(
 			token,
-			&jwt.StandardClaims{},
+			&models.CustomClaims{}, // 使用自定义Claims
 			func(token *jwt.Token) (interface{}, error) {
 				return []byte(config.AppGlobalConfig.Jwt.Secret), nil
 			})
+
 		if err != nil {
 			handleJWTError(c, err)
 			return
 		}
-		if standardClaims, ok := claims.Claims.(*jwt.StandardClaims); ok && claims.Valid {
-			c.Set("claims", standardClaims)
+
+		// 修改类型断言
+		if customClaims, ok := claims.Claims.(*models.CustomClaims); ok && claims.Valid {
+			c.Set("claims", customClaims) // 存储完整的自定义Claims
 			c.Next()
 		} else {
 			c.JSON(401, models.Error(401, "无效token"))

@@ -5,6 +5,7 @@ import (
 	"gin_back/config"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"strconv"
 )
 
 type carouselService struct {
@@ -28,6 +29,11 @@ func (*carouselService) CarouselListService(c *gin.Context) (models.Result, erro
 	// 创建基础查询
 	baseQuery := config.DB.Model(&models.Carousel{}).Order("`sort` ASC")
 
+	// 获取总数（排除分页条件）
+	if err := baseQuery.Count(&total).Error; err != nil {
+		return models.Fail(500, "获取总数失败"), err
+	}
+
 	// 执行分页查询（包含数据查询和总数统计）
 	if err := baseQuery.
 		Scopes(
@@ -36,11 +42,6 @@ func (*carouselService) CarouselListService(c *gin.Context) (models.Result, erro
 		Find(&carousels).
 		Error; err != nil {
 		return models.Fail(500, "查询失败"), err
-	}
-
-	// 获取总数（排除分页条件）
-	if err := baseQuery.Count(&total).Error; err != nil {
-		return models.Fail(500, "获取总数失败"), err
 	}
 
 	// 构建分页响应
@@ -99,27 +100,26 @@ func (s *carouselService) CarouselDeleteService(c *gin.Context) (models.Result, 
 // 增强的Paginate函数
 func Paginate(c *gin.Context) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		// 绑定分页参数
-		var params models.Pagination
-		if err := c.ShouldBindQuery(&params); err != nil {
-			params.Page = 1
-			params.PageSize = 10
+		// 提取分页参数
+		current, _ := strconv.Atoi(c.Query("current"))
+		if current <= 0 {
+			current = 1
 		}
 
-		// 参数有效性校验
-		if params.Page < 1 {
-			params.Page = 1
-		}
-		if params.PageSize <= 0 || params.PageSize > 100 {
-			params.PageSize = 10
+		pageSize, _ := strconv.Atoi(c.Query("pageSize"))
+		if pageSize <= 0 {
+			pageSize = 10 // 默认每页显示10条
 		}
 
-		// 存储参数到context
-		c.Set("page", params.Page)
-		c.Set("pageSize", params.PageSize)
+		// 计算偏移量
+		offset := (current - 1) * pageSize
 
-		offset := (params.Page - 1) * params.PageSize
-		return db.Offset(offset).Limit(params.PageSize)
+		// 将分页参数存储到 gin.Context 中
+		c.Set("page", current)
+		c.Set("pageSize", pageSize)
+
+		// 应用分页
+		return db.Offset(offset).Limit(pageSize)
 	}
 }
 

@@ -27,18 +27,30 @@ func searchByParams(c *gin.Context) func(db *gorm.DB) *gorm.DB {
 }
 
 func UserListService(c *gin.Context) (models.Result, error) {
+	type UserOrg struct {
+		OrgName     string `json:"org_name"`
+		OrgLogo     string `json:"org_logo"`
+		Leader      string `json:"leader"`
+		Description string `json:"description"`
+	}
 	type UserWithRole struct {
 		models.User
-		RoleName    string `json:"role_name"`
-		Description string `json:"role_description"`
+		UserOrg
+		RoleName       string `json:"role_name"`
+		Description    string `json:"role_description"`
+		RolePermission string `json:"role_permission"`
 	}
 
 	var userList []UserWithRole
 	var total int64
 
 	baseQuery := config.DB.Model(&models.User{}).
-		Select("users.*, roles.role_name, roles.description").
+		Select("users.*, roles.role_name, roles.description, roles.permission").
 		Joins("LEFT JOIN roles ON users.role_id = roles.id").Order("`created_at` DESC")
+
+	if err := baseQuery.Count(&total).Error; err != nil {
+		return models.Fail(500, "获取总数失败"), err
+	}
 
 	if err := baseQuery.
 		Scopes(
@@ -48,12 +60,13 @@ func UserListService(c *gin.Context) (models.Result, error) {
 		Error; err != nil {
 		return models.Fail(500, "查询失败"), err
 	}
-	if err := baseQuery.Count(&total).Error; err != nil {
-		return models.Fail(500, "获取总数失败"), err
-	}
 
 	for u := range userList {
 		userList[u].Password = ""
+		config.DB.
+			Model(&models.Organization{}).
+			Where("id = ?", userList[u].OrgId).
+			First(&userList[u].UserOrg)
 	}
 
 	pagination := models.PaginationResponse{

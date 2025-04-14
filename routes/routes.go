@@ -3,6 +3,7 @@ package routes
 import (
 	"gin_back/app/controllers"
 	"gin_back/app/middleware"
+	"gin_back/config"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,7 +17,7 @@ func SetApiGroupRoutes(router *gin.Engine) *gin.Engine {
 	publicGroup.GET("/carousel", controllers.CarouselList)
 
 	apiGroup := router.Group("/api")
-	apiGroup.Use(middleware.Auth())
+	apiGroup.Use(middleware.Auth(), middleware.LogMiddleware(config.DB))
 
 	apiGroup.POST("/upload", controllers.Upload)
 	// 轮播图
@@ -33,6 +34,15 @@ func SetApiGroupRoutes(router *gin.Engine) *gin.Engine {
 	apiGroup.POST("/roles", controllers.CreateRole)
 	apiGroup.PUT("/roles/:id", controllers.UpdateRole)
 	apiGroup.DELETE("/roles/:id", controllers.DeleteRole)
+	// 部门
+	apiGroup.GET("/organization", controllers.OrgList)
+	apiGroup.GET("/organization/:parent_id", controllers.OrgListOfChildren)
+	apiGroup.POST("/organization", controllers.CreateOrg)
+	apiGroup.PUT("/organization/:id", controllers.UpdateOrg)
+	apiGroup.DELETE("/organization/:id", controllers.DeleteOrg)
+	// 日志
+	apiGroup.GET("/log", controllers.LogList)
+	apiGroup.DELETE("/log", controllers.DeleteLog)
 	// 通知
 	apiGroup.GET("/notification", controllers.NotificationList)
 	apiGroup.POST("/notification", controllers.NotificationCreate)

@@ -19,6 +19,7 @@ type User struct {
 	Avatar     string         `json:"avatar"`
 	Status     string         `json:"status"`
 	Permission string         `json:"permission"`
+	OrgId      int            `json:"org_id"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `json:"deletedAt" gorm:"index"`
