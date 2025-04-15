@@ -10,4 +10,5 @@ type Organization struct {
 	Sort        int             `json:"sort"`
 	Description string          `json:"description"`
 	Children    []*Organization `json:"children,omitempty" gorm:"-"` // 忽略数据库映射
+	Users       []*User         `json:"users" gorm:"-"`
 }

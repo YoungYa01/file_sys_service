@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"bytes"
-	"encoding/json"
 	"gin_back/app/models"
 	"github.com/gin-gonic/gin"
 	"github.com/lionsoul2014/ip2region/binding/golang/xdb"
@@ -41,15 +40,8 @@ func LogMiddleware(db *gorm.DB) gin.HandlerFunc {
 			if customClaims, ok := claims.(*models.CustomClaims); ok {
 				logEntry.UserId = customClaims.UserID
 				logEntry.UserName = customClaims.UserName // 需要确保claims包含用户名
-				log.Println("用户信息:", customClaims)
-				log.Println("用户ID:", customClaims.UserID)
-				log.Println("用户名:", customClaims.UserName)
 			}
-			log.Println("logEntry用户ID:", logEntry.UserId)
-			log.Println("logEntry用户名:", logEntry.UserName)
 		}
-		marshalIndent, _ := json.MarshalIndent(logEntry, "", "  ")
-		log.Println("logEntry is", string(marshalIndent))
 
 		// 解析User-Agent
 		if uaString := c.Request.UserAgent(); uaString != "" {

@@ -13,6 +13,14 @@ func OrgList(c *gin.Context) {
 	c.JSON(200, orgListService)
 }
 
+func OrgUserList(c *gin.Context) {
+	orgUserListService, err := services.OrgUserListService()
+	if err != nil {
+		return
+	}
+	c.JSON(200, orgUserListService)
+}
+
 func OrgListOfChildren(c *gin.Context) {
 	orgListOfChildrenService, err := services.GetChildren(c)
 	if err != nil {

@@ -36,6 +36,7 @@ func SetApiGroupRoutes(router *gin.Engine) *gin.Engine {
 	apiGroup.DELETE("/roles/:id", controllers.DeleteRole)
 	// 部门
 	apiGroup.GET("/organization", controllers.OrgList)
+	apiGroup.GET("/organization/users", controllers.OrgUserList)
 	apiGroup.GET("/organization/:parent_id", controllers.OrgListOfChildren)
 	apiGroup.POST("/organization", controllers.CreateOrg)
 	apiGroup.PUT("/organization/:id", controllers.UpdateOrg)
@@ -50,6 +51,8 @@ func SetApiGroupRoutes(router *gin.Engine) *gin.Engine {
 	apiGroup.DELETE("/notification/:id", controllers.NotificationDelete)
 	// 收集任务
 	apiGroup.GET("/collection", controllers.CollectionList)
+	apiGroup.GET("/collection/:id", controllers.CollectionDetail)
+	apiGroup.GET("/collection/submit/:id", controllers.CollectionSubmitDetail)
 	apiGroup.POST("/collection", controllers.CollectionCreate)
 	apiGroup.PUT("/collection/:id", controllers.CollectionUpdate)
 	apiGroup.DELETE("/collection/:id", controllers.CollectionDelete)

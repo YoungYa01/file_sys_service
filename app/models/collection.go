@@ -17,7 +17,7 @@ type Collection struct {
 	TotalNumber     int       `json:"total_number"`
 	Submitters      []int     `json:"submitters"`
 	Reviewers       []int     `json:"reviewers"`
-	EndTime         time.Time `json:"end_time"`
+	EndTime         string    `json:"end_time"`
 	CreatedAt       time.Time `json:"created_at" gorm:"autoCreateTime"`
 }
 

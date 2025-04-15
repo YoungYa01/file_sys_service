@@ -32,6 +32,7 @@ func Auth() gin.HandlerFunc {
 		// 修改类型断言
 		if customClaims, ok := claims.Claims.(*models.CustomClaims); ok && claims.Valid {
 			c.Set("claims", customClaims) // 存储完整的自定义Claims
+			c.Set("userId", customClaims.UserID)
 			c.Next()
 		} else {
 			c.JSON(401, models.Error(401, "无效token"))

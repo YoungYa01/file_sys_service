@@ -28,6 +28,21 @@ func OrgListService(c *gin.Context) (models.Result, error) {
 	return models.Success(treeData), nil
 }
 
+func OrgUserListService() (models.Result, error) {
+	var orgList []models.Organization
+
+	baseQuery := config.DB.Model(&models.Organization{}).Order("`sort` ASC")
+	if err := baseQuery.Find(&orgList).Error; err != nil {
+		return models.Fail(500, "查询失败"), err
+	}
+
+	// 转换为树形结构
+	treeData := ConvertUserToTree(orgList)
+	b, _ := json.MarshalIndent(treeData, "", "  ")
+	log.Println(string(b))
+	return models.Success(treeData), nil
+}
+
 // 接口：根据父节点获取子节点
 func GetChildren(c *gin.Context) (models.Result, error) {
 	parentID := c.Query("parent_id")
@@ -126,5 +141,57 @@ func ConvertToTree(orgs []models.Organization) []*models.Organization {
 			}
 		}
 	}
+	return roots
+}
+
+func ConvertUserToTree(orgs []models.Organization) []*models.Organization {
+	orgMap := make(map[int]*models.Organization)
+	orgIDs := make([]int, 0, len(orgs))
+
+	// 初始化组织映射并收集所有组织ID
+	for i := range orgs {
+		org := &orgs[i]
+		org.Children = []*models.Organization{} // 初始化子节点
+		org.Users = []*models.User{}            // 初始化用户列表
+		orgMap[org.ID] = org
+		orgIDs = append(orgIDs, org.ID)
+	}
+
+	// 批量查询所有相关用户
+	var users []*models.User
+	if err := config.DB.Where("org_id IN ?", orgIDs).Find(&users).Error; err != nil {
+		log.Printf("Failed to fetch users: %v", err)
+	}
+
+	// 按org_id分组用户
+	userMap := make(map[int][]*models.User)
+	for _, user := range users {
+		userMap[user.OrgId] = append(userMap[user.OrgId], user)
+	}
+
+	// 确保所有组织都有用户条目（即使为空）
+	for _, id := range orgIDs {
+		if _, exists := userMap[id]; !exists {
+			userMap[id] = []*models.User{}
+		}
+	}
+
+	// 分配用户到组织节点
+	for id, org := range orgMap {
+		org.Users = userMap[id]
+	}
+
+	// 构建树形结构
+	var roots []*models.Organization
+	for _, org := range orgs {
+		if org.ParentId == 0 {
+			roots = append(roots, orgMap[org.ID])
+		} else {
+			if parent, exists := orgMap[org.ParentId]; exists {
+				parent.Children = append(parent.Children, orgMap[org.ID])
+			}
+		}
+	}
+
 	return roots
 }

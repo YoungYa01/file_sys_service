@@ -16,6 +16,22 @@ func CollectionList(c *gin.Context) {
 	c.JSON(200, collectionListService)
 }
 
+func CollectionDetail(c *gin.Context) {
+	collectionDetailService, err := services.CollectionDetailService(c)
+	if err != nil {
+		return
+	}
+	c.JSON(200, collectionDetailService)
+}
+
+func CollectionSubmitDetail(c *gin.Context) {
+	collectionSubmitDetailService, err := services.CollectionSubmitDetailService(c)
+	if err != nil {
+		return
+	}
+	c.JSON(200, collectionSubmitDetailService)
+}
+
 func CollectionCreate(c *gin.Context) {
 	// 1. 接收并验证请求参数
 	var creator models.Collection
@@ -23,16 +39,20 @@ func CollectionCreate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.Error(400, "参数错误"+err.Error()))
 		return
 	}
+	claims, _ := c.Get("claims")
+	id := claims.(*models.CustomClaims).UserID
+	creator.Founder = id
+
 	// 2. 调用服务层创建方法
 	if err := services.CreateCollectionService(creator); err != nil {
 		// 根据错误类型返回不同状态码
 		statusCode := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "参数校验失败") {
-			c.JSON(200, models.Error(400, "参数校验失败"+err.Error()))
+			c.JSON(http.StatusOK, models.Error(http.StatusBadRequest, "参数校验失败"+err.Error()))
 			return
 		}
 
-		c.JSON(200, models.Error(statusCode, "创建失败"+err.Error()))
+		c.JSON(http.StatusOK, models.Error(statusCode, "创建失败"+err.Error()))
 		return
 	}
 
