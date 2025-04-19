@@ -3,6 +3,7 @@ package controllers
 import (
 	"gin_back/app/services"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func NotificationList(c *gin.Context) {
@@ -10,7 +11,7 @@ func NotificationList(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, notificationCreateService)
+	c.JSON(http.StatusOK, notificationCreateService)
 }
 
 func NotificationCreate(c *gin.Context) {
@@ -18,7 +19,7 @@ func NotificationCreate(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, notificationCreateService)
+	c.JSON(http.StatusOK, notificationCreateService)
 }
 
 func NotificationUpdate(c *gin.Context) {
@@ -26,7 +27,7 @@ func NotificationUpdate(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, notificationCreateService)
+	c.JSON(http.StatusOK, notificationCreateService)
 }
 
 func NotificationDelete(c *gin.Context) {
@@ -34,5 +35,5 @@ func NotificationDelete(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, notificationCreateService)
+	c.JSON(http.StatusOK, notificationCreateService)
 }

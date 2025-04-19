@@ -3,6 +3,7 @@ package controllers
 import (
 	"gin_back/app/services"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func OrgList(c *gin.Context) {
@@ -10,7 +11,7 @@ func OrgList(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, orgListService)
+	c.JSON(http.StatusOK, orgListService)
 }
 
 func OrgUserList(c *gin.Context) {
@@ -18,7 +19,7 @@ func OrgUserList(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, orgUserListService)
+	c.JSON(http.StatusOK, orgUserListService)
 }
 
 func OrgListOfChildren(c *gin.Context) {
@@ -26,7 +27,7 @@ func OrgListOfChildren(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, orgListOfChildrenService)
+	c.JSON(http.StatusOK, orgListOfChildrenService)
 }
 
 func CreateOrg(c *gin.Context) {
@@ -34,7 +35,7 @@ func CreateOrg(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, orgCreateService)
+	c.JSON(http.StatusOK, orgCreateService)
 }
 
 func UpdateOrg(c *gin.Context) {
@@ -42,7 +43,7 @@ func UpdateOrg(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, orgUpdateService)
+	c.JSON(http.StatusOK, orgUpdateService)
 }
 
 func DeleteOrg(c *gin.Context) {
@@ -50,5 +51,5 @@ func DeleteOrg(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, orgDeleteService)
+	c.JSON(http.StatusOK, orgDeleteService)
 }

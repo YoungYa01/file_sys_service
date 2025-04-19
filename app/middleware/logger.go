@@ -32,6 +32,9 @@ func LogMiddleware(db *gorm.DB) gin.HandlerFunc {
 		if c.Request.Method != http.MethodGet {
 			paramsBytes, _ = io.ReadAll(c.Request.Body)
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(paramsBytes))
+			if len(paramsBytes) > 200 {
+				paramsBytes = paramsBytes[:200]
+			}
 			logEntry.Params = string(paramsBytes)
 		}
 

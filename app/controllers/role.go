@@ -3,6 +3,7 @@ package controllers
 import (
 	"gin_back/app/services"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func RoleList(c *gin.Context) {
@@ -10,7 +11,7 @@ func RoleList(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, roleListService)
+	c.JSON(http.StatusOK, roleListService)
 }
 
 func CreateRole(c *gin.Context) {
@@ -18,7 +19,7 @@ func CreateRole(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, roleCreateService)
+	c.JSON(http.StatusOK, roleCreateService)
 }
 
 func UpdateRole(c *gin.Context) {
@@ -26,7 +27,7 @@ func UpdateRole(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, roleUpdateService)
+	c.JSON(http.StatusOK, roleUpdateService)
 }
 
 func DeleteRole(c *gin.Context) {
@@ -34,5 +35,5 @@ func DeleteRole(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, roleDeleteService)
+	c.JSON(http.StatusOK, roleDeleteService)
 }

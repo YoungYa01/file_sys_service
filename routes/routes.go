@@ -51,6 +51,8 @@ func SetApiGroupRoutes(router *gin.Engine) *gin.Engine {
 	apiGroup.DELETE("/notification/:id", controllers.NotificationDelete)
 	// 收集任务
 	apiGroup.GET("/collection", controllers.CollectionList)
+	apiGroup.GET("/collection/task-center", controllers.TCCollectionList)
+	apiGroup.POST("/collection/task-center", controllers.TCSubmit)
 	apiGroup.GET("/collection/:id", controllers.CollectionDetail)
 	apiGroup.GET("/collection/submit/:id", controllers.CollectionSubmitDetail)
 	apiGroup.POST("/collection", controllers.CollectionCreate)

@@ -4,6 +4,7 @@ import (
 	"gin_back/app/models"
 	"gin_back/config"
 	"github.com/golang-jwt/jwt/v4"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -26,11 +27,11 @@ func (*loginService) LoginService(l models.Login) (models.Result, error) {
 		Scan(&user)
 
 	if user.ID == 0 {
-		return models.Fail(401, "用户名或密码错误"), nil
+		return models.Fail(http.StatusNotFound, "用户名或密码错误"), nil
 	}
 
 	if user.Status == "0" {
-		return models.Fail(401, "用户已被禁用"), nil
+		return models.Fail(http.StatusUnauthorized, "用户已被禁用"), nil
 	}
 
 	expireHours := config.AppGlobalConfig.Jwt.Expire
@@ -49,7 +50,7 @@ func (*loginService) LoginService(l models.Login) (models.Result, error) {
 	tokenString, err := token.SignedString([]byte(config.AppGlobalConfig.Jwt.Secret))
 
 	if err != nil {
-		models.Error(500, "系统错误")
+		models.Error(http.StatusInternalServerError, "系统错误")
 	}
 
 	response := models.LoginResponse{
@@ -74,7 +75,7 @@ func (*loginService) RegisterService(r models.Register) (models.Result, error) {
 	config.DB.Where("username = ?", r.Username).Find(&user)
 
 	if user.ID != 0 {
-		return models.Fail(401, "用户名已存在"), nil
+		return models.Fail(http.StatusBadRequest, "用户名已存在"), nil
 	}
 	user.Age, _ = strconv.Atoi(r.Age)
 	user.Email = r.Email
@@ -82,9 +83,9 @@ func (*loginService) RegisterService(r models.Register) (models.Result, error) {
 	user.Username = r.Username
 	config.DB.Create(&user)
 	if user.ID == 0 {
-		return models.Fail(500, "注册失败"), nil
+		return models.Fail(http.StatusInternalServerError, "注册失败"), nil
 	}
-	return models.Success(models.SuccessWithMsg("注册成功")), nil
+	return models.Success("注册成功"), nil
 }
 
 var LoginService = new(loginService)

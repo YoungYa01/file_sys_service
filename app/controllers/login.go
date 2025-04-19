@@ -22,7 +22,7 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, models.Error(401, "登录失败"))
 		return
 	}
-	c.JSON(200, loginService)
+	c.JSON(http.StatusOK, loginService)
 }
 
 func Register(r *gin.Context) {
@@ -36,9 +36,9 @@ func Register(r *gin.Context) {
 	if err != nil {
 		return
 	}
-	r.JSON(200, registerService)
+	r.JSON(http.StatusOK, registerService)
 }
 
 func LoginTest(r *gin.Context) {
-	r.JSON(200, models.Success("登录成功"))
+	r.JSON(http.StatusOK, models.Success("登录成功"))
 }

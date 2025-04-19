@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -19,7 +20,7 @@ func OrgListService(c *gin.Context) (models.Result, error) {
 			searchOrgParams(c)).
 		Find(&orgList).
 		Error; err != nil {
-		return models.Fail(500, "查询失败"), err
+		return models.Fail(http.StatusInternalServerError, "查询失败"+err.Error()), err
 	}
 
 	// 转换为树形结构
@@ -33,7 +34,7 @@ func OrgUserListService() (models.Result, error) {
 
 	baseQuery := config.DB.Model(&models.Organization{}).Order("`sort` ASC")
 	if err := baseQuery.Find(&orgList).Error; err != nil {
-		return models.Fail(500, "查询失败"), err
+		return models.Fail(http.StatusInternalServerError, "查询失败"+err.Error()), err
 	}
 
 	// 转换为树形结构
@@ -55,10 +56,10 @@ func GetChildren(c *gin.Context) (models.Result, error) {
 func UpdateOrg(c *gin.Context) (models.Result, error) {
 	var org models.Organization
 	if err := c.ShouldBindJSON(&org); err != nil {
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"+err.Error()), err
 	}
 	if err := config.DB.Where("id = ?", org.ID).Updates(&org).Error; err != nil {
-		return models.Fail(400, "更新失败"), err
+		return models.Fail(http.StatusBadRequest, "更新失败"+err.Error()), err
 	}
 	return models.Success("更新成功"), nil
 }
@@ -66,10 +67,10 @@ func UpdateOrg(c *gin.Context) (models.Result, error) {
 func CreateOrg(c *gin.Context) (models.Result, error) {
 	var org models.Organization
 	if err := c.ShouldBindJSON(&org); err != nil {
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"+err.Error()), err
 	}
 	if err := config.DB.Create(&org).Error; err != nil {
-		return models.Fail(400, "创建失败"), err
+		return models.Fail(http.StatusBadRequest, "创建失败"+err.Error()), err
 	}
 	return models.Success("创建成功"), nil
 }
@@ -78,7 +79,7 @@ func DeleteOrg(c *gin.Context) (models.Result, error) {
 	id := c.Param("id")
 	var organizations []models.Organization
 	if err := config.DB.Where("parent_id = ?", id).Find(&organizations).Error; err != nil {
-		return models.Error(400, "删除失败"), err
+		return models.Error(http.StatusBadRequest, "删除失败"+err.Error()), err
 	}
 	marshalIndent, err := json.MarshalIndent(organizations, "", "  ")
 	if err != nil {
@@ -86,7 +87,7 @@ func DeleteOrg(c *gin.Context) (models.Result, error) {
 	}
 	log.Println("organizations is", string(marshalIndent))
 	if len(organizations) > 0 {
-		return models.Error(400, "请先删除子部门"), nil
+		return models.Error(http.StatusBadRequest, "请先删除子部门"), nil
 	}
 	org := models.Organization{}
 	config.DB.Where("id = ?", id).First(&org)
@@ -95,11 +96,11 @@ func DeleteOrg(c *gin.Context) (models.Result, error) {
 		err := os.Remove("." + org.OrgLogo)
 		if err != nil {
 			log.Println("删除失败" + err.Error())
-			return models.Error(400, "删除失败"), err
+			return models.Error(http.StatusBadRequest, "删除失败"+err.Error()), err
 		}
 	}
 	if err := config.DB.Where("id = ?", id).Delete(&models.Organization{}).Error; err != nil {
-		return models.Error(400, "删除失败"), err
+		return models.Error(http.StatusBadRequest, "删除失败"), err
 	}
 	return models.Success("删除成功"), nil
 }

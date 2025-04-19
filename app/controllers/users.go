@@ -3,6 +3,7 @@ package controllers
 import (
 	"gin_back/app/services"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func UserList(c *gin.Context) {
@@ -10,7 +11,7 @@ func UserList(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, userListService)
+	c.JSON(http.StatusOK, userListService)
 }
 
 func CreateUser(c *gin.Context) {
@@ -18,7 +19,7 @@ func CreateUser(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, userCreateService)
+	c.JSON(http.StatusOK, userCreateService)
 }
 
 func UpdateUser(c *gin.Context) {
@@ -26,7 +27,7 @@ func UpdateUser(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, userUpdateService)
+	c.JSON(http.StatusOK, userUpdateService)
 }
 
 func DeleteUser(c *gin.Context) {
@@ -34,5 +35,5 @@ func DeleteUser(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, userDeleteService)
+	c.JSON(http.StatusOK, userDeleteService)
 }

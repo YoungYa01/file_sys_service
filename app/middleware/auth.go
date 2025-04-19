@@ -46,11 +46,11 @@ func handleJWTError(c *gin.Context, err error) {
 	if ve, ok := err.(*jwt.ValidationError); ok {
 		switch {
 		case ve.Errors&jwt.ValidationErrorExpired != 0:
-			c.JSON(401, models.Error(401, "token已过期"))
+			c.JSON(401, models.Error(401, "登录已过期，请重新登录"))
 		case ve.Errors&jwt.ValidationErrorSignatureInvalid != 0:
-			c.JSON(401, models.Error(401, "token签名错误"))
+			c.JSON(401, models.Error(401, "系统签名错误"))
 		default:
-			c.JSON(401, models.Error(401, "无效token"))
+			c.JSON(401, models.Error(401, "登录无效，请重新登录"))
 		}
 	} else {
 		c.JSON(401, models.Error(401, "token解析失败"))

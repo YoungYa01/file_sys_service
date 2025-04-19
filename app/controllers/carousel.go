@@ -3,6 +3,7 @@ package controllers
 import (
 	"gin_back/app/services"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func CarouselList(c *gin.Context) {
@@ -10,7 +11,7 @@ func CarouselList(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, carouselListService)
+	c.JSON(http.StatusOK, carouselListService)
 }
 
 func CreateCarousel(c *gin.Context) {
@@ -18,7 +19,7 @@ func CreateCarousel(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, carouselCreateService)
+	c.JSON(http.StatusOK, carouselCreateService)
 }
 
 func UpdateCarousel(c *gin.Context) {
@@ -26,7 +27,7 @@ func UpdateCarousel(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, carouselUpdateService)
+	c.JSON(http.StatusOK, carouselUpdateService)
 }
 
 func DeleteCarousel(c *gin.Context) {
@@ -34,5 +35,5 @@ func DeleteCarousel(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, carouselDeleteService)
+	c.JSON(http.StatusOK, carouselDeleteService)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
+	"net/http"
 )
 
 func searchRoleList(c *gin.Context) func(db *gorm.DB) *gorm.DB {
@@ -33,11 +34,11 @@ func RoleListService(c *gin.Context) (models.Result, error) {
 		Paginate(c)).
 		Find(&roleList).
 		Error; err != nil {
-		return models.Fail(500, "查询失败"), err
+		return models.Fail(http.StatusInternalServerError, "查询失败"+err.Error()), err
 	}
 
 	if err := baseQuery.Count(&total).Error; err != nil {
-		return models.Fail(500, "获取总数失败"), err
+		return models.Fail(http.StatusInternalServerError, "获取总数失败"+err.Error()), err
 	}
 	pagination := models.PaginationResponse{
 		Page:     c.GetInt("page"),
@@ -52,44 +53,43 @@ func RoleCreateService(c *gin.Context) (models.Result, error) {
 	var role models.Role
 	if err := c.ShouldBindJSON(&role); err != nil {
 		log.Println("RoleCreateService err:", err)
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"+err.Error()), err
 	}
 	// 查重
 	if err := config.DB.Where("role = ?", role.RoleName).First(&role).Error; err == nil {
-		return models.Fail(400, "角色已存在"), nil
+		return models.Fail(http.StatusBadRequest, "角色已存在"), nil
 	}
 	if role.RoleName == "" || role.Permission == "" || role.Status == "" || role.Sort == 0 {
-		return models.Fail(400, "参数错误"), nil
+		return models.Fail(http.StatusBadRequest, "参数错误"), nil
 	}
 	if err := config.DB.Create(&role).Error; err != nil {
-		return models.Fail(400, "创建失败"), err
+		return models.Fail(http.StatusBadRequest, "创建失败"+err.Error()), err
 	}
-	return models.Success(models.SuccessWithMsg("创建成功")), nil
+	return models.Success("创建成功"), nil
 }
 
 func RoleUpdateService(c *gin.Context) (models.Result, error) {
 	var role models.Role
 	if err := c.ShouldBindJSON(&role); err != nil {
-		log.Println("RoleUpdateService err:", err)
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"), err
 	}
 	if role.RoleName == "" || role.Permission == "" || role.Status == "" || role.Sort == 0 {
-		return models.Fail(400, "参数错误"), nil
+		return models.Fail(http.StatusBadRequest, "参数错误"), nil
 	}
 	if err := config.DB.Where("id = ?", role.ID).Updates(&role).Error; err != nil {
-		return models.Fail(400, "更新失败"), err
+		return models.Fail(http.StatusBadRequest, "更新失败"), err
 	}
-	return models.Success(models.SuccessWithMsg("更新成功")), nil
+	return models.Success("更新成功"), nil
 }
 
 func RoleDeleteService(c *gin.Context) (models.Result, error) {
 	var role models.Role
 	if err := c.ShouldBindJSON(&role); err != nil {
 		log.Println("RoleDeleteService err:", err)
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"+err.Error()), err
 	}
 	if err := config.DB.Where("id = ?", role.ID).Delete(&role).Error; err != nil {
-		return models.Fail(400, "删除失败"), err
+		return models.Fail(http.StatusBadRequest, "删除失败"+err.Error()), err
 	}
-	return models.Success(models.SuccessWithMsg("删除成功")), nil
+	return models.Success("删除成功"), nil
 }

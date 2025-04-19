@@ -13,7 +13,23 @@ func CollectionList(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, collectionListService)
+	c.JSON(http.StatusOK, collectionListService)
+}
+
+func TCCollectionList(c *gin.Context) {
+	collectionListService, err := services.TCCollectionListService(c)
+	if err != nil {
+		return
+	}
+	c.JSON(http.StatusOK, collectionListService)
+}
+
+func TCSubmit(c *gin.Context) {
+	collectionSubmitService, err := services.CollectionSubmitService(c)
+	if err != nil {
+		return
+	}
+	c.JSON(http.StatusOK, collectionSubmitService)
 }
 
 func CollectionDetail(c *gin.Context) {
@@ -21,7 +37,7 @@ func CollectionDetail(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, collectionDetailService)
+	c.JSON(http.StatusOK, collectionDetailService)
 }
 
 func CollectionSubmitDetail(c *gin.Context) {
@@ -29,7 +45,7 @@ func CollectionSubmitDetail(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, collectionSubmitDetailService)
+	c.JSON(http.StatusOK, collectionSubmitDetailService)
 }
 
 func CollectionCreate(c *gin.Context) {
@@ -56,7 +72,7 @@ func CollectionCreate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, models.Success(creator))
+	c.JSON(http.StatusOK, models.Success(creator))
 }
 
 func CollectionUpdate(c *gin.Context) {
@@ -64,7 +80,7 @@ func CollectionUpdate(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, collectionUpdateService)
+	c.JSON(http.StatusOK, collectionUpdateService)
 }
 
 func CollectionDelete(c *gin.Context) {
@@ -72,5 +88,5 @@ func CollectionDelete(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, collectionDeleteService)
+	c.JSON(http.StatusOK, collectionDeleteService)
 }

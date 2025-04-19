@@ -5,6 +5,7 @@ import (
 	"gin_back/config"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"net/http"
 	"strconv"
 )
 
@@ -31,7 +32,7 @@ func (*carouselService) CarouselListService(c *gin.Context) (models.Result, erro
 
 	// 获取总数（排除分页条件）
 	if err := baseQuery.Count(&total).Error; err != nil {
-		return models.Fail(500, "获取总数失败"), err
+		return models.Fail(http.StatusInternalServerError, "获取总数失败"), err
 	}
 
 	// 执行分页查询（包含数据查询和总数统计）
@@ -41,7 +42,7 @@ func (*carouselService) CarouselListService(c *gin.Context) (models.Result, erro
 			Paginate(c)).
 		Find(&carousels).
 		Error; err != nil {
-		return models.Fail(500, "查询失败"), err
+		return models.Fail(http.StatusInternalServerError, "查询失败"), err
 	}
 
 	// 构建分页响应
@@ -58,13 +59,13 @@ func (*carouselService) CarouselListService(c *gin.Context) (models.Result, erro
 func (s *carouselService) CarouselCreateService(c *gin.Context) (models.Result, error) {
 	var carousel models.Carousel
 	if err := c.ShouldBindJSON(&carousel); err != nil {
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"), err
 	}
 	if carousel.Title == "" || carousel.URL == "" {
-		return models.Fail(400, "参数错误"), nil
+		return models.Fail(http.StatusBadRequest, "参数错误"), nil
 	}
 	if err := config.DB.Create(&carousel).Error; err != nil {
-		return models.Fail(400, "创建失败"), err
+		return models.Fail(http.StatusBadRequest, "创建失败"), err
 	}
 	return models.Success(models.SuccessWithMsg("创建成功")), nil
 }
@@ -73,26 +74,26 @@ func (s *carouselService) CarouselUpdateService(c *gin.Context) (models.Result, 
 	var carousel models.Carousel
 	id := c.Param("id")
 	if err := config.DB.Where("id = ?", id).First(&carousel).Error; err != nil {
-		return models.Fail(400, "请检查id是否正确"), err
+		return models.Fail(http.StatusBadRequest, "请检查id是否正确"), err
 	}
 
 	if err := c.ShouldBindJSON(&carousel); err != nil {
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"), err
 	}
 
 	if carousel.ID == 0 || carousel.Title == "" || carousel.URL == "" {
-		return models.Fail(400, "参数错误"), nil
+		return models.Fail(http.StatusBadRequest, "参数错误"), nil
 	}
 	if err := config.DB.Where("id = ?", carousel.ID).Updates(&carousel).Error; err != nil {
-		return models.Fail(400, "更新失败"), err
+		return models.Fail(http.StatusBadRequest, "更新失败"), err
 	}
-	return models.Success(models.SuccessWithMsg("更新成功")), nil
+	return models.Success("更新成功"), nil
 }
 
 func (s *carouselService) CarouselDeleteService(c *gin.Context) (models.Result, error) {
 	id := c.Param("id")
 	if err := config.DB.Where("id = ?", id).Delete(&models.Carousel{}).Error; err != nil {
-		return models.Fail(400, "删除失败"), err
+		return models.Fail(http.StatusBadRequest, "删除失败"), err
 	}
 	return models.Success(models.SuccessWithMsg("删除成功")), nil
 }

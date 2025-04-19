@@ -75,3 +75,14 @@ type CollectionReviewer struct {
 func (cr *CollectionReviewer) TableName() string {
 	return "collection_reviewers"
 }
+
+type TCFile struct {
+	FileName string `json:"file_name"`
+	FilePath string `json:"file_path"`
+}
+
+type TCSubmitter struct {
+	CollectionID uint     `json:"collection_id"`
+	UserID       uint     `json:"user_id"`
+	File         []TCFile `json:"file"`
+}

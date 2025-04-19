@@ -5,6 +5,7 @@ import (
 	"gin_back/config"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"net/http"
 )
 
 func searchLogParams(c *gin.Context) func(db *gorm.DB) *gorm.DB {
@@ -46,7 +47,7 @@ func LogListService(c *gin.Context) (models.Result, error) {
 	if err := baseQuery.
 		Count(&total).
 		Error; err != nil {
-		return models.Fail(500, "查询失败"), err
+		return models.Fail(http.StatusInternalServerError, "查询失败"), err
 	}
 
 	if err := baseQuery.
@@ -55,7 +56,7 @@ func LogListService(c *gin.Context) (models.Result, error) {
 			Paginate(c)).
 		Find(&logList).
 		Error; err != nil {
-		return models.Fail(500, "查询失败"), err
+		return models.Fail(http.StatusInternalServerError, "查询失败"), err
 	}
 	pagination := models.PaginationResponse{
 		Page:     c.GetInt("page"),
@@ -70,7 +71,7 @@ func LogDeleteService(c *gin.Context) (models.Result, error) {
 	var log models.Log
 	id := c.Param("id")
 	if err := config.DB.Where("id = ?", id).Delete(&log).Error; err != nil {
-		return models.Fail(500, "删除失败"), err
+		return models.Fail(http.StatusInternalServerError, "删除失败"), err
 	}
 	return models.Success(models.SuccessWithMsg("删除成功")), nil
 }

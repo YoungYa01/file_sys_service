@@ -3,6 +3,7 @@ package controllers
 import (
 	"gin_back/app/services"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func LogList(c *gin.Context) {
@@ -10,7 +11,7 @@ func LogList(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, logListService)
+	c.JSON(http.StatusOK, logListService)
 }
 
 func DeleteLog(c *gin.Context) {
@@ -18,5 +19,5 @@ func DeleteLog(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(200, logDeleteService)
+	c.JSON(http.StatusOK, logDeleteService)
 }

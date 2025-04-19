@@ -5,20 +5,21 @@ import (
 	"gin_back/config"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"net/http"
 )
 
 func NotificationCreateService(c *gin.Context) (models.Result, error) {
 	var notification models.Notification
 	if err := c.ShouldBindJSON(&notification); err != nil {
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"), err
 	}
 	if notification.Title == "" || notification.Content == "" {
-		return models.Fail(400, "参数错误"), nil
+		return models.Fail(http.StatusBadRequest, "参数错误"), nil
 	}
 	if err := config.DB.Create(&notification).Error; err != nil {
-		return models.Fail(400, "创建失败"), err
+		return models.Fail(http.StatusBadRequest, "创建失败"), err
 	}
-	return models.Success(models.SuccessWithMsg("创建成功")), nil
+	return models.Success("创建成功"), nil
 }
 
 func searchNotificationByParams(c *gin.Context) func(db *gorm.DB) *gorm.DB {
@@ -55,7 +56,7 @@ func NotificationListService(c *gin.Context) (models.Result, error) {
 		Order("pinned DESC, created_at DESC")
 
 	if err := baseQuery.Count(&total).Error; err != nil {
-		return models.Fail(500, "获取总数失败"), err
+		return models.Fail(http.StatusInternalServerError, "获取总数失败"), err
 	}
 
 	if err := baseQuery.
@@ -64,7 +65,7 @@ func NotificationListService(c *gin.Context) (models.Result, error) {
 			Paginate(c)).
 		Find(&notification).
 		Error; err != nil {
-		return models.Fail(500, "查询失败"), err
+		return models.Fail(http.StatusInternalServerError, "查询失败"), err
 	}
 
 	pagination := models.PaginationResponse{
@@ -79,27 +80,27 @@ func NotificationListService(c *gin.Context) (models.Result, error) {
 func NotificationUpdateService(c *gin.Context) (models.Result, error) {
 	var notification models.Notification
 	if err := c.ShouldBindJSON(&notification); err != nil {
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"), err
 	}
 	if notification.ID == 0 {
-		return models.Fail(400, "参数错误"), nil
+		return models.Fail(http.StatusBadRequest, "参数错误"), nil
 	}
 	if err := config.DB.Where("id = ?", notification.ID).Updates(&notification).Error; err != nil {
-		return models.Fail(400, "更新失败"), err
+		return models.Fail(http.StatusBadRequest, "更新失败"), err
 	}
-	return models.Success(models.SuccessWithMsg("更新成功")), nil
+	return models.Success("更新成功"), nil
 }
 
 func NotificationDeleteService(c *gin.Context) (models.Result, error) {
 	var notification models.Notification
 	if err := c.ShouldBindJSON(&notification); err != nil {
-		return models.Fail(400, "参数错误"), err
+		return models.Fail(http.StatusBadRequest, "参数错误"), err
 	}
 	if notification.ID == 0 {
-		return models.Fail(400, "参数错误"), nil
+		return models.Fail(http.StatusBadRequest, "参数错误"), nil
 	}
 	if err := config.DB.Where("id = ?", notification.ID).Delete(&notification).Error; err != nil {
-		return models.Fail(400, "删除失败"), err
+		return models.Fail(http.StatusBadRequest, "删除失败"), err
 	}
-	return models.Success(models.SuccessWithMsg("删除成功")), nil
+	return models.Success("删除成功"), nil
 }

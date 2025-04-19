@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
+	"net/http"
 	"sort"
 	"strconv"
 	"time"
@@ -43,7 +44,7 @@ func CreateCollectionService(creator models.Collection) error {
 	const timeLayout = "2006-01-02 15:04:05"
 	endTime, err := time.ParseInLocation(timeLayout, creator.EndTime, time.Local)
 	if err != nil {
-		return fmt.Errorf("时间格式错误，请使用 YYYY-MM-DD HH:mm:ss 格式")
+		return fmt.Errorf("时间格式错误: %v", err)
 	}
 	// 开启事务
 	tx := config.DB.Begin()
@@ -125,13 +126,13 @@ func CreateCollectionService(creator models.Collection) error {
 	return tx.Commit().Error
 }
 
-func CollectionListService(c *gin.Context) (models.Result, error) {
+func TCCollectionListService(c *gin.Context) (models.Result, error) {
 	var baseCollections []models.CollectionCreator
 	var total int64
 
 	// 第一阶段：获取基础分页数据
 	baseQuery := config.DB.Model(&models.CollectionCreator{}).
-		Order("created_at DESC")
+		Order("pinned DESC,created_at DESC")
 
 	if err := baseQuery.Count(&total).Error; err != nil {
 		return models.Fail(500, "查询失败"), err
@@ -144,7 +145,152 @@ func CollectionListService(c *gin.Context) (models.Result, error) {
 		Find(&baseCollections).
 		Error; err != nil {
 		log.Println("查询失败", err)
-		return models.Fail(500, "查询失败"), err
+		return models.Fail(http.StatusInternalServerError, "查询失败"), err
+	}
+
+	collectionIDs := make([]uint, len(baseCollections))
+	for i, c := range baseCollections {
+		collectionIDs[i] = c.ID
+	}
+
+	result := make([]struct {
+		models.CollectionCreator
+		Founder models.User
+	}, len(baseCollections))
+	for i, c := range baseCollections {
+		result[i].CollectionCreator = c
+		var reviewers []models.CollectionReviewer
+		config.DB.Model(&models.CollectionReviewer{}).
+			Where("collection_reviewers.collection_id = ?", c.ID).
+			Scan(&reviewers)
+		result[i].Reviewers = reviewers
+
+		var f models.User
+		config.DB.Model(&models.User{}).
+			Where("id = ?", c.Founder).
+			First(&f)
+		if f.ID != 0 {
+			result[i].Founder = f
+		}
+	}
+
+	return models.Success(models.PaginationResponse{
+		Page:     c.GetInt("page"),
+		PageSize: c.GetInt("pageSize"),
+		Total:    total,
+		Data:     result,
+	}), nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func CollectionSubmitService(c *gin.Context) (models.Result, error) {
+	var tcSubmitter models.TCSubmitter
+	claims, _ := c.Get("claims")
+	id := claims.(*models.CustomClaims).UserID
+	userName := claims.(*models.CustomClaims).UserName
+
+	if err := c.ShouldBindJSON(&tcSubmitter); err != nil {
+		return models.Error(http.StatusBadRequest, "参数错误"+err.Error()), err
+	}
+
+	tx := config.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var collection models.CollectionCreator
+	if err := tx.Model(&models.CollectionCreator{}).
+		Where("id = ?", tcSubmitter.CollectionID).
+		First(&collection).Error; err != nil {
+		return models.Fail(http.StatusInternalServerError, "查询失败"), err
+	}
+
+	if collection.Access == "some" {
+		// 查询所有需要处理的记录
+		var collectionSubmitters []models.CollectionSubmitter
+		err := tx.Model(&models.CollectionSubmitter{}).
+			Where("user_id = ? AND collection_id = ?", id, tcSubmitter.CollectionID).
+			Order("sort ASC").
+			Find(&collectionSubmitters).Error
+		if err != nil {
+			return models.Fail(http.StatusInternalServerError, "查询失败"), err
+		}
+
+		// 确定最小处理数量
+		processCount := min(len(collectionSubmitters), len(tcSubmitter.File))
+
+		// 只处理有对应文件的部分
+		for index := 0; index < processCount; index++ {
+			submitter := &collectionSubmitters[index]
+			submitter.FilePath = tcSubmitter.File[index].FilePath
+			submitter.FileName = tcSubmitter.File[index].FileName
+			submitter.SubmitTime = time.Now()
+			submitter.TaskStatus = 2
+
+			if err := tx.Select("file_path", "file_name", "submit_time", "task_status").
+				Where("id = ?", submitter.ID).
+				Updates(submitter).Error; err != nil {
+				tx.Rollback()
+				return models.Fail(http.StatusInternalServerError, fmt.Sprintf("第%d个文件更新失败", index+1)), err
+			}
+		}
+
+		// 自动跳过超出文件数量的记录
+		return models.Success(fmt.Sprintf("成功提交%d个文件", processCount)), tx.Commit().Error
+	} else {
+		var collectionSubmitters []models.CollectionSubmitter
+		processCount := len(tcSubmitter.File)
+		for index := 0; index < processCount; index++ {
+			collectionSubmitters = append(collectionSubmitters, models.CollectionSubmitter{
+				CollectionID: tcSubmitter.CollectionID,
+				UserID:       uint(id),
+				TaskStatus:   2,
+				UserName:     userName,
+				Sort:         index + 1,
+				FilePath:     tcSubmitter.File[index].FilePath,
+				FileName:     tcSubmitter.File[index].FileName,
+			})
+		}
+		if err := tx.Create(&collectionSubmitters).Error; err != nil {
+			tx.Rollback()
+			return models.Fail(http.StatusInternalServerError, "创建提交者失败"), err
+		}
+		return models.Success(fmt.Sprintf("成功提交%d个文件", processCount)), tx.Commit().Error
+	}
+
+}
+func CollectionListService(c *gin.Context) (models.Result, error) {
+	var baseCollections []models.CollectionCreator
+	var total int64
+
+	claims, _ := c.Get("claims")
+	id := claims.(*models.CustomClaims).UserID
+
+	// 第一阶段：获取基础分页数据
+	baseQuery := config.DB.Model(&models.CollectionCreator{}).
+		Where("founder = ?", id).
+		Order("pinned DESC,created_at DESC")
+
+	if err := baseQuery.Count(&total).Error; err != nil {
+		return models.Fail(http.StatusInternalServerError, "查询失败"), err
+	}
+
+	if err := baseQuery.
+		Scopes(
+			searchCLParams(c),
+			Paginate(c)).
+		Find(&baseCollections).
+		Error; err != nil {
+		log.Println("查询失败", err)
+		return models.Fail(http.StatusInternalServerError, "查询失败"), err
 	}
 
 	collectionIDs := make([]uint, len(baseCollections))
@@ -185,13 +331,19 @@ func CollectionDetailService(c *gin.Context) (models.Result, error) {
 	collectionId := c.Param("id")
 	type Details struct {
 		models.CollectionCreator
-		Founder   models.User                 `json:"founder"`
-		Reviewers []models.CollectionReviewer `json:"reviewers"`
+		Founder              models.User                  `json:"founder"`
+		Reviewers            []models.CollectionReviewer  `json:"reviewers"`
+		Submitters           []models.CollectionSubmitter `json:"submitters"`
+		CollectionSubmitters []models.CollectionSubmitter `json:"submitted_files"`
 	}
+
+	claims, _ := c.Get("claims")
+	id := claims.(*models.CustomClaims).UserID
+
 	var collection models.CollectionCreator
 	if err := config.DB.Where("id = ?", collectionId).First(&collection).Error; err != nil {
 		log.Println("id错误", err)
-		return models.Fail(500, "id错误"+err.Error()), err
+		return models.Fail(http.StatusInternalServerError, "id错误"+err.Error()), err
 	}
 	var founders models.User
 
@@ -208,10 +360,28 @@ func CollectionDetailService(c *gin.Context) (models.Result, error) {
 		Where("collection_id = ?", collectionId).
 		Scan(&reviewers)
 
+	var submitters []models.CollectionSubmitter
+
+	config.DB.Model(&models.CollectionSubmitter{}).
+		Order("sort ASC").
+		Where("collection_id = ?", collectionId).
+		Scan(&submitters)
+
+	var collectionSubmitters []models.CollectionSubmitter
+	err := config.DB.Model(&models.CollectionSubmitter{}).
+		Where("user_id = ? AND collection_id = ?", id, collectionId). // 关键修复
+		Order("sort ASC").
+		Find(&collectionSubmitters).Error
+	if err != nil {
+		return models.Fail(http.StatusInternalServerError, "查询失败"), err
+	}
+
 	result := Details{
-		CollectionCreator: collection,
-		Reviewers:         reviewers,
-		Founder:           founders,
+		CollectionCreator:    collection,
+		Reviewers:            reviewers,
+		Founder:              founders,
+		Submitters:           submitters,
+		CollectionSubmitters: collectionSubmitters,
 	}
 	return models.Success(result), nil
 }
@@ -245,7 +415,7 @@ func CollectionSubmitDetailService(c *gin.Context) (models.Result, error) {
 
 	if err := baseQuery.Find(&collectionSubmitters).Error; err != nil {
 		log.Println("查询失败", err)
-		return models.Fail(500, "查询失败"+err.Error()), err
+		return models.Fail(http.StatusInternalServerError, "查询失败"+err.Error()), err
 	}
 	// 按照任务 ID、提交者 ID 和用户名分组
 	groupedData := make(map[string]CollectionSubmitterGroup)
@@ -323,23 +493,24 @@ func CollectionSubmitDetailService(c *gin.Context) (models.Result, error) {
 	}
 	return models.Success(pagination), nil
 }
+
 func UpdateCollectionService(c *gin.Context) (models.Result, error) {
 	var collection models.CollectionCreator
 	if err := config.DB.Where("id = ?", c.Param("id")).First(&collection).Error; err != nil {
 		log.Println("id错误", err)
-		return models.Fail(500, "id错误"+err.Error()), err
+		return models.Fail(http.StatusInternalServerError, "id错误"+err.Error()), err
 	}
 
 	if err := c.ShouldBindJSON(&collection); err != nil {
 		marshalIndent, _ := json.MarshalIndent(collection, "", "  ")
 		log.Println("参数错误", err, string(marshalIndent))
-		return models.Fail(400, "参数错误"+err.Error()), err
+		return models.Fail(http.StatusBadRequest, "参数错误"+err.Error()), err
 	}
 
 	log.Println("collection is", collection)
 	if err := config.DB.Save(&collection).Error; err != nil {
 		log.Println("更新失败", err)
-		return models.Fail(500, "更新失败"+err.Error()), err
+		return models.Fail(http.StatusInternalServerError, "更新失败"+err.Error()), err
 	}
 	return models.Success(models.SuccessWithMsg("更新成功")), nil
 }
@@ -358,27 +529,27 @@ func DeleteCollectionService(c *gin.Context) (models.Result, error) {
 	if err := tx.Where("id = ?", c.Param("id")).First(&collection).Error; err != nil {
 		log.Println("id错误", err)
 		tx.Rollback()
-		return models.Error(400, "id错误"+err.Error()), err
+		return models.Error(http.StatusBadRequest, "id错误"+err.Error()), err
 	}
 	if err := tx.Where("collection_id = ?", c.Param("id")).Delete(&models.CollectionSubmitter{}).Error; err != nil {
 		log.Println("删除提交者失败", err)
 		tx.Rollback()
-		return models.Error(500, "删除提交者失败"+err.Error()), err
+		return models.Error(http.StatusInternalServerError, "删除提交者失败"+err.Error()), err
 	}
 	if err := tx.Where("collection_id = ?", c.Param("id")).Delete(&models.CollectionReviewer{}).Error; err != nil {
 		log.Println("删除审核者失败", err)
 		tx.Rollback()
-		return models.Error(500, "删除审核者失败"+err.Error()), err
+		return models.Error(http.StatusInternalServerError, "删除审核者失败"+err.Error()), err
 	}
 	if err := tx.Where("id = ?", c.Param("id")).Delete(&collection).Error; err != nil {
 		log.Println("删除失败", err)
 		tx.Rollback()
-		return models.Error(500, "删除失败"+err.Error()), err
+		return models.Error(http.StatusInternalServerError, "删除失败"+err.Error()), err
 	}
 	if err := tx.Commit().Error; err != nil {
 		log.Println("提交事务失败", err)
 		tx.Rollback()
-		return models.Error(500, "提交事务失败"+err.Error()), err
+		return models.Error(http.StatusInternalServerError, "提交事务失败"+err.Error()), err
 	}
 	return models.Success(models.SuccessWithMsg("删除成功")), nil
 }
