@@ -195,6 +195,8 @@ func CollectionSubmitService(c *gin.Context) (models.Result, error) {
 	id := claims.(*models.CustomClaims).UserID
 	userName := claims.(*models.CustomClaims).UserName
 
+	log.Println(id, userName)
+
 	if err := c.ShouldBindJSON(&tcSubmitter); err != nil {
 		return models.Error(http.StatusBadRequest, "参数错误"+err.Error()), err
 	}
@@ -207,13 +209,45 @@ func CollectionSubmitService(c *gin.Context) (models.Result, error) {
 	}()
 
 	var collection models.CollectionCreator
+	var total int64
 	if err := tx.Model(&models.CollectionCreator{}).
 		Where("id = ?", tcSubmitter.CollectionID).
 		First(&collection).Error; err != nil {
 		return models.Fail(http.StatusInternalServerError, "查询失败"), err
 	}
 
-	if collection.Access == "some" {
+	tx.Model(&models.CollectionSubmitter{}).
+		Where("collection_id = ? AND user_id = ?", tcSubmitter.CollectionID, id).
+		Count(&total)
+
+	if collection.Access != "some" && total <= int64(collection.FileNumber) {
+		// 首先删掉原来的然后再创建新的
+		if err := tx.Where("user_id = ? AND collection_id = ?", id, tcSubmitter.CollectionID).
+			Delete(&models.CollectionSubmitter{}).Error; err != nil {
+			tx.Rollback()
+			return models.Fail(http.StatusInternalServerError, "删除失败"), err
+		}
+
+		var collectionSubmitters []models.CollectionSubmitter
+		processCount := len(tcSubmitter.File)
+		for index := 0; index < processCount; index++ {
+			collectionSubmitters = append(collectionSubmitters, models.CollectionSubmitter{
+				CollectionID: tcSubmitter.CollectionID,
+				UserID:       uint(id),
+				TaskStatus:   2,
+				UserName:     userName,
+				SubmitTime:   time.Now(),
+				Sort:         index + 1,
+				FilePath:     tcSubmitter.File[index].FilePath,
+				FileName:     tcSubmitter.File[index].FileName,
+			})
+		}
+		if err := tx.Create(&collectionSubmitters).Error; err != nil {
+			tx.Rollback()
+			return models.Fail(http.StatusInternalServerError, "创建提交者失败"), err
+		}
+		return models.Success(fmt.Sprintf("成功提交%d个文件", processCount)), tx.Commit().Error
+	} else {
 		// 查询所有需要处理的记录
 		var collectionSubmitters []models.CollectionSubmitter
 		err := tx.Model(&models.CollectionSubmitter{}).
@@ -234,6 +268,7 @@ func CollectionSubmitService(c *gin.Context) (models.Result, error) {
 			submitter.FileName = tcSubmitter.File[index].FileName
 			submitter.SubmitTime = time.Now()
 			submitter.TaskStatus = 2
+			submitter.Sort = index + 1
 
 			if err := tx.Select("file_path", "file_name", "submit_time", "task_status").
 				Where("id = ?", submitter.ID).
@@ -244,25 +279,6 @@ func CollectionSubmitService(c *gin.Context) (models.Result, error) {
 		}
 
 		// 自动跳过超出文件数量的记录
-		return models.Success(fmt.Sprintf("成功提交%d个文件", processCount)), tx.Commit().Error
-	} else {
-		var collectionSubmitters []models.CollectionSubmitter
-		processCount := len(tcSubmitter.File)
-		for index := 0; index < processCount; index++ {
-			collectionSubmitters = append(collectionSubmitters, models.CollectionSubmitter{
-				CollectionID: tcSubmitter.CollectionID,
-				UserID:       uint(id),
-				TaskStatus:   2,
-				UserName:     userName,
-				Sort:         index + 1,
-				FilePath:     tcSubmitter.File[index].FilePath,
-				FileName:     tcSubmitter.File[index].FileName,
-			})
-		}
-		if err := tx.Create(&collectionSubmitters).Error; err != nil {
-			tx.Rollback()
-			return models.Fail(http.StatusInternalServerError, "创建提交者失败"), err
-		}
 		return models.Success(fmt.Sprintf("成功提交%d个文件", processCount)), tx.Commit().Error
 	}
 

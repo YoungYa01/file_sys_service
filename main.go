@@ -32,7 +32,7 @@ func main() {
 	)
 
 	application.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // 允许的前端地址
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type"},
@@ -42,6 +42,12 @@ func main() {
 		},
 		MaxAge: 12 * time.Hour,
 	}))
+
+	application.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET")
+		c.Next()
+	})
 
 	application.Static("/static", "./static")
 	application.Static("/upload", "./upload")
