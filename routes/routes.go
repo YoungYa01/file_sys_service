@@ -58,5 +58,10 @@ func SetApiGroupRoutes(router *gin.Engine) *gin.Engine {
 	apiGroup.POST("/collection", controllers.CollectionCreate)
 	apiGroup.PUT("/collection/:id", controllers.CollectionUpdate)
 	apiGroup.DELETE("/collection/:id", controllers.CollectionDelete)
+	// 审核中心
+	apiGroup.GET("/review", controllers.ReviewList)
+	apiGroup.GET("/review/:id", controllers.ReviewDetailList)
+	apiGroup.PUT("/review/status", controllers.ReviewStatus)
+	apiGroup.GET("/review/export", controllers.ReviewExport)
 	return router
 }

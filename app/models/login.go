@@ -19,6 +19,7 @@ type LoginResponse struct {
 	ID         int    `json:"id"`
 	Username   string `json:"username"`
 	RoleName   string `json:"role_name"`
+	Nickname   string `json:"nickname"`
 	Age        int    `json:"age"`
 	Email      string `json:"email"`
 	Avatar     string `json:"avatar"`

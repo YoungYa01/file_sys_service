@@ -52,6 +52,8 @@ type CollectionSubmitter struct {
 	UserID       uint      `json:"user_id"`
 	UserName     string    `json:"user_name"`
 	TaskStatus   uint      `json:"task_status" gorm:"size:20;default:1"`
+	ReviewStatus uint      `json:"review_status"`
+	ReviewTime   time.Time `json:"review_time"`
 	SubmitTime   time.Time `json:"submit_time" gorm:"default:''"`
 	FilePath     string    `json:"file_path"`
 	FileName     string    `json:"file_name"`

@@ -60,6 +60,7 @@ func (*loginService) LoginService(l models.Login) (models.Result, error) {
 		ID:         user.ID,
 		RoleName:   user.RoleName,
 		Username:   user.Username,
+		Nickname:   user.Nickname,
 		Sex:        user.Sex,
 		Avatar:     user.Avatar,
 		Phone:      user.Phone,

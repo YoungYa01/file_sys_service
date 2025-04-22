@@ -10,6 +10,7 @@ type User struct {
 	ID         int            `json:"id"`
 	Username   string         `json:"username"`
 	Password   string         `json:"password"`
+	Nickname   string         `json:"nickname"`
 	RoleID     uint           `json:"role_id"`                       // 改为关联Role表的ID
 	Role       Role           `gorm:"foreignKey:RoleID" json:"role"` // 添加关联关系
 	Age        int            `json:"age"`
