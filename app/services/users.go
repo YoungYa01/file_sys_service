@@ -4,8 +4,12 @@ import (
 	"gin_back/app/models"
 	"gin_back/config"
 	"github.com/gin-gonic/gin"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
+	"log"
 	"net/http"
+	"path/filepath"
+	"strings"
 )
 
 func searchByParams(c *gin.Context) func(db *gorm.DB) *gorm.DB {
@@ -13,15 +17,19 @@ func searchByParams(c *gin.Context) func(db *gorm.DB) *gorm.DB {
 		username := c.Query("username") // 从URL参数获取title参数
 		if username != "" {
 			// 使用LIKE进行模糊查询，并防止SQL注入
-			return db.Where("username LIKE ?", "%"+username+"%")
+			db.Where("username LIKE ?", "%"+username+"%")
 		}
 		role := c.Query("role")
 		if role != "" {
-			return db.Where("role = ?", role)
+			db.Where("role = ?", role)
 		}
 		status := c.Query("status")
 		if status != "" {
-			return db.Where("status = ?", status)
+			db.Where("status = ?", status)
+		}
+		nickname := c.Query("nickname")
+		if nickname != "" {
+			db.Where("nickname LIKE ?", "%"+nickname+"%")
 		}
 		return db
 	}
@@ -46,6 +54,7 @@ func UserListService(c *gin.Context) (models.Result, error) {
 	var total int64
 
 	baseQuery := config.DB.Model(&models.User{}).
+		Scopes(searchByParams(c)).
 		Select("users.*, roles.role_name, roles.description, roles.permission").
 		Joins("LEFT JOIN roles ON users.role_id = roles.id").Order("`created_at` DESC")
 
@@ -54,9 +63,7 @@ func UserListService(c *gin.Context) (models.Result, error) {
 	}
 
 	if err := baseQuery.
-		Scopes(
-			searchByParams(c),
-			Paginate(c)).
+		Scopes(Paginate(c)).
 		Find(&userList).
 		Error; err != nil {
 		return models.Fail(http.StatusInternalServerError, "查询失败"), err
@@ -93,6 +100,36 @@ func UserCreateService(c *gin.Context) (models.Result, error) {
 	return models.Success(models.SuccessWithMsg("创建成功")), nil
 }
 
+func UserDetailService(c *gin.Context) (models.Result, error) {
+	var user models.User
+	claims, _ := c.Get("claims")
+	id := claims.(*models.CustomClaims).UserID
+	if err := config.DB.Model(&models.User{}).
+		Where("id = ?", id).
+		First(&user).Error; err != nil {
+		return models.Fail(http.StatusBadRequest, "请检查id是否正确"), err
+	}
+
+	var hotmaps []models.CollectionSubmitter
+	err := config.DB.Model(&models.CollectionSubmitter{}).
+		Where("user_id = ?", id).
+		Order("submit_time asc").
+		Scan(&hotmaps).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库查询失败"})
+		return models.Fail(http.StatusInternalServerError, "数据库查询失败"), err
+	}
+
+	return models.Success(struct {
+		User   models.User                  `json:"user"`
+		HotMap []models.CollectionSubmitter `json:"hot_map"`
+	}{
+		User:   user,
+		HotMap: hotmaps,
+	}), nil
+}
+
 func UserUpdateService(c *gin.Context) (models.Result, error) {
 	var user models.User
 	id := c.Param("id")
@@ -121,4 +158,81 @@ func UserDeleteService(c *gin.Context) (models.Result, error) {
 		return models.Fail(http.StatusBadRequest, "删除失败"), err
 	}
 	return models.Success("删除成功"), nil
+}
+
+func UserUploadService(c *gin.Context) error {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusOK, models.Fail(http.StatusBadRequest, "请上传文件"))
+		return err
+	}
+	if file.Header.Get("Content-Type") != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" {
+		c.JSON(http.StatusOK, models.Fail(http.StatusBadRequest, "请上传Excel文件"))
+		return err
+	}
+	// 3. 保存临时文件
+	tempPath := filepath.Join("uploads", file.Filename)
+	if err := c.SaveUploadedFile(file, tempPath); err != nil {
+		c.JSON(http.StatusOK, models.Fail(http.StatusBadRequest, "文件保存失败"))
+		return err
+	}
+	// 4. 解析Excel数据
+	f, err := excelize.OpenFile(tempPath)
+	if err != nil {
+		c.JSON(http.StatusOK, models.Fail(http.StatusBadRequest, "文件解析失败"))
+		return err
+	}
+	defer f.Close()
+	rows, err := f.GetRows("Sheet1")
+	if err != nil || len(rows) < 2 {
+		c.JSON(http.StatusOK, models.Fail(http.StatusBadRequest, "数据解析失败"))
+		return err
+	}
+	var users []models.User
+	for rowIdx, row := range rows[1:] {
+		actualRow := rowIdx + 2 // Excel行号从1开始
+		if len(row) < 3 {
+			c.JSON(http.StatusOK, models.Fail(http.StatusBadRequest, "数据解析失败"))
+			return err
+		}
+		nickname := row[0]
+		workNo := row[1]
+		pwd := row[2]
+		depart := strings.TrimSpace(row[3])
+		rl := strings.TrimSpace(row[4])
+		log.Printf("第%d行数据：姓名=%s,工号=%s,密码=%s,部门=%s,角色=%s", actualRow, nickname, workNo, pwd, depart, rl)
+		var role models.Role
+		config.DB.Where("role_name = ?", rl).First(&role)
+		if role.ID == 0 {
+			continue
+		}
+		var organization models.Organization
+		config.DB.Where("org_name = ?", depart).First(&organization)
+		if organization.ID == 0 {
+			continue
+		}
+		var u models.User
+		config.DB.Model(&models.User{}).Where("username = ?", workNo).First(&u)
+		if u.ID != 0 {
+			continue
+		}
+		users = append(users, models.User{
+			Nickname: nickname,
+			Username: workNo,
+			Password: pwd,
+			RoleID:   role.ID,
+			OrgId:    organization.ID,
+		})
+	}
+	if len(users) == 0 {
+		c.JSON(http.StatusOK, models.Success(users))
+		return err
+	}
+	if err := config.DB.Create(&users).Error; err != nil {
+		c.JSON(http.StatusOK, models.Fail(http.StatusBadRequest, "数据导入失败"))
+		return err
+	}
+
+	c.JSON(http.StatusOK, models.Success(users))
+	return nil
 }

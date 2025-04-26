@@ -89,6 +89,7 @@ func ReviewDetailListService(c *gin.Context) (models.Result, error) {
 		CollectionID uint         `json:"collection_id"`
 		UserID       uint         `json:"user_id"`
 		UserName     string       `json:"user_name"`
+		Nickname     string       `json:"nickname"`
 		Submits      []SubmitInfo `json:"submits"`
 	}
 
@@ -125,6 +126,7 @@ func ReviewDetailListService(c *gin.Context) (models.Result, error) {
 				CollectionID: submitter.CollectionID,
 				UserID:       submitter.UserID,
 				UserName:     submitter.UserName,
+				Nickname:     submitter.Nickname,
 				Submits: []SubmitInfo{
 					{
 						ID:           submitter.ID,

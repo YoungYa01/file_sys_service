@@ -51,9 +51,10 @@ type CollectionSubmitter struct {
 	CollectionID uint      `json:"collection_id"`
 	UserID       uint      `json:"user_id"`
 	UserName     string    `json:"user_name"`
+	Nickname     string    `json:"nickname"`
 	TaskStatus   uint      `json:"task_status" gorm:"size:20;default:1"`
 	ReviewStatus uint      `json:"review_status"`
-	ReviewTime   time.Time `json:"review_time"`
+	ReviewTime   time.Time `json:"review_time" gorm:"default:''"`
 	SubmitTime   time.Time `json:"submit_time" gorm:"default:''"`
 	FilePath     string    `json:"file_path"`
 	FileName     string    `json:"file_name"`
@@ -71,6 +72,7 @@ type CollectionReviewer struct {
 	CollectionID uint   `json:"collection_id"`
 	UserID       uint   `json:"user_id"`
 	UserName     string `json:"user_name"`
+	Nickname     string `json:"nickname"`
 	ReviewOrder  int    `json:"review_order" gorm:"default:1"` // 审核顺序（1=第一审核人）
 }
 

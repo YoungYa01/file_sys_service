@@ -93,6 +93,7 @@ func CreateCollectionService(creator models.Collection) error {
 				UserID:       uint(submitterID),
 				TaskStatus:   1, // 根据你的定义设置默认值
 				UserName:     user.Username,
+				Nickname:     user.Nickname,
 				Sort:         i + 1, //可能要提交多个文件
 			}
 
@@ -195,6 +196,12 @@ func CollectionSubmitService(c *gin.Context) (models.Result, error) {
 	id := claims.(*models.CustomClaims).UserID
 	userName := claims.(*models.CustomClaims).UserName
 
+	var user models.User
+
+	if err := config.DB.Model(&models.User{}).Where("id = ?", id).First(&user).Error; err != nil {
+		return models.Error(http.StatusBadRequest, "用户不存在"), err
+	}
+
 	log.Println(id, userName)
 
 	if err := c.ShouldBindJSON(&tcSubmitter); err != nil {
@@ -236,6 +243,7 @@ func CollectionSubmitService(c *gin.Context) (models.Result, error) {
 				UserID:       uint(id),
 				TaskStatus:   2,
 				UserName:     userName,
+				Nickname:     user.Nickname,
 				SubmitTime:   time.Now(),
 				Sort:         index + 1,
 				FilePath:     tcSubmitter.File[index].FilePath,

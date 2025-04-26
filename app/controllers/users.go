@@ -22,6 +22,14 @@ func CreateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, userCreateService)
 }
 
+func UserDetail(c *gin.Context) {
+	userDetailService, err := services.UserDetailService(c)
+	if err != nil {
+		return
+	}
+	c.JSON(http.StatusOK, userDetailService)
+}
+
 func UpdateUser(c *gin.Context) {
 	userUpdateService, err := services.UserUpdateService(c)
 	if err != nil {
@@ -36,4 +44,11 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, userDeleteService)
+}
+
+func UploadUser(c *gin.Context) {
+	err := services.UserUploadService(c)
+	if err != nil {
+		return
+	}
 }

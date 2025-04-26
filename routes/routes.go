@@ -29,6 +29,9 @@ func SetApiGroupRoutes(router *gin.Engine) *gin.Engine {
 	apiGroup.POST("/users", controllers.CreateUser)
 	apiGroup.PUT("/users/:id", controllers.UpdateUser)
 	apiGroup.DELETE("/users/:id", controllers.DeleteUser)
+	apiGroup.POST("/users/upload", controllers.UploadUser)
+	// 当前用户信息
+	apiGroup.GET("/userinfo", controllers.UserDetail)
 	// 角色
 	apiGroup.GET("/roles", controllers.RoleList)
 	apiGroup.POST("/roles", controllers.CreateRole)

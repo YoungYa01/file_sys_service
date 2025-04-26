@@ -13,3 +13,14 @@ $env:CGO_ENABLED = "0"  # 禁用 CGO（静态编译）
 # 编译生成 Linux 可执行文件
 go build -o sys_server_linux main.go
 ```
+
+```shell
+# 查看进程
+ps aux | grep sys_server
+# 停止进程
+kill -9 进程号
+# 设置可执行权限
+chmod +x sys_server
+# 启动服务
+nohup ./sys_server > app.log 2>&1 &
+```
