@@ -27,15 +27,19 @@ func searchNotificationByParams(c *gin.Context) func(db *gorm.DB) *gorm.DB {
 		title := c.Query("title") // 从URL参数获取title参数
 		if title != "" {
 			// 使用LIKE进行模糊查询，并防止SQL注入
-			return db.Where("title LIKE ?", "%"+title+"%")
+			db.Where("title LIKE ?", "%"+title+"%")
 		}
 		founder := c.Query("founder")
 		if founder != "" {
-			return db.Where("founder = ?", founder)
+			db.Where("founder = ?", founder)
 		}
 		pinned := c.Query("pinned")
 		if pinned != "" {
-			return db.Where("pinned = ?", pinned)
+			db.Where("pinned = ?", pinned)
+		}
+		status := c.Query("status")
+		if status != "" {
+			db.Where("notification.status = ?", status)
 		}
 		return db
 	}
@@ -55,7 +59,9 @@ func NotificationListService(c *gin.Context) (models.Result, error) {
 		Joins("left join users on notification.founder = users.id").
 		Order("pinned DESC, created_at DESC")
 
-	if err := baseQuery.Count(&total).Error; err != nil {
+	if err := baseQuery.
+		Scopes(searchNotificationByParams(c)).
+		Count(&total).Error; err != nil {
 		return models.Fail(http.StatusInternalServerError, "获取总数失败"), err
 	}
 
@@ -92,14 +98,12 @@ func NotificationUpdateService(c *gin.Context) (models.Result, error) {
 }
 
 func NotificationDeleteService(c *gin.Context) (models.Result, error) {
+	id := c.Param("id")
 	var notification models.Notification
-	if err := c.ShouldBindJSON(&notification); err != nil {
-		return models.Fail(http.StatusBadRequest, "参数错误"), err
-	}
-	if notification.ID == 0 {
+	if id == "" {
 		return models.Fail(http.StatusBadRequest, "参数错误"), nil
 	}
-	if err := config.DB.Where("id = ?", notification.ID).Delete(&notification).Error; err != nil {
+	if err := config.DB.Where("id = ?", id).Delete(&notification).Error; err != nil {
 		return models.Fail(http.StatusBadRequest, "删除失败"), err
 	}
 	return models.Success("删除成功"), nil

@@ -255,6 +255,11 @@ func ReviewExportService(c *gin.Context) (models.Result, error) {
 		fileInZip := file.FileName
 
 		log.Println("filePath", filePath)
+		//判断文件是否存在，不存在跳过该文件
+		if !FileExists(filePath) {
+			continue
+		}
+
 		if file.FilePath == "" {
 			continue
 		}
@@ -306,6 +311,17 @@ func ReviewExportService(c *gin.Context) (models.Result, error) {
 
 	// 返回空Result避免框架追加JSON响应
 	return models.Result{}, nil
+}
+
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return false
 }
 
 type File struct {

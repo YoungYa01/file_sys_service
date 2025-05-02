@@ -412,18 +412,22 @@ func CollectionDetailService(c *gin.Context) (models.Result, error) {
 
 func CollectionSubmitDetailService(c *gin.Context) (models.Result, error) {
 	type SubmitInfo struct {
-		SubmitTime time.Time `json:"submit_time"`
-		FilePath   string    `json:"file_path"`
-		FileName   string    `json:"file_name"`
-		Recommend  string    `json:"recommend"`
-		TaskStatus uint      `json:"task_status"`
-		Sort       int       `json:"sort"`
+		ID           uint      `json:"id"`
+		ReviewStatus uint      `json:"review_status"`
+		ReviewTime   time.Time `json:"review_time"`
+		SubmitTime   time.Time `json:"submit_time"`
+		FilePath     string    `json:"file_path"`
+		FileName     string    `json:"file_name"`
+		Recommend    string    `json:"recommend"`
+		TaskStatus   uint      `json:"task_status"`
+		Sort         int       `json:"sort"`
 	}
 	type CollectionSubmitterGroup struct {
 		ID           uint         `json:"id"`
 		CollectionID uint         `json:"collection_id"`
 		UserID       uint         `json:"user_id"`
 		UserName     string       `json:"user_name"`
+		Nickname     string       `json:"nickname"`
 		Submits      []SubmitInfo `json:"submits"`
 	}
 
@@ -447,12 +451,15 @@ func CollectionSubmitDetailService(c *gin.Context) (models.Result, error) {
 		key := fmt.Sprintf("%d-%d-%s", submitter.CollectionID, submitter.UserID, submitter.UserName)
 		if group, exists := groupedData[key]; exists {
 			group.Submits = append(group.Submits, SubmitInfo{
-				TaskStatus: submitter.TaskStatus,
-				SubmitTime: submitter.SubmitTime,
-				FilePath:   submitter.FilePath,
-				FileName:   submitter.FileName,
-				Recommend:  submitter.Recommend,
-				Sort:       submitter.Sort,
+				ID:           submitter.ID,
+				ReviewStatus: submitter.ReviewStatus,
+				ReviewTime:   submitter.ReviewTime,
+				TaskStatus:   submitter.TaskStatus,
+				SubmitTime:   submitter.SubmitTime,
+				FilePath:     submitter.FilePath,
+				FileName:     submitter.FileName,
+				Recommend:    submitter.Recommend,
+				Sort:         submitter.Sort,
 			})
 			groupedData[key] = group
 		} else {
@@ -461,14 +468,18 @@ func CollectionSubmitDetailService(c *gin.Context) (models.Result, error) {
 				CollectionID: submitter.CollectionID,
 				UserID:       submitter.UserID,
 				UserName:     submitter.UserName,
+				Nickname:     submitter.Nickname,
 				Submits: []SubmitInfo{
 					{
-						TaskStatus: submitter.TaskStatus,
-						SubmitTime: submitter.SubmitTime,
-						FilePath:   submitter.FilePath,
-						FileName:   submitter.FileName,
-						Recommend:  submitter.Recommend,
-						Sort:       submitter.Sort,
+						ID:           submitter.ID,
+						ReviewStatus: submitter.ReviewStatus,
+						ReviewTime:   submitter.ReviewTime,
+						TaskStatus:   submitter.TaskStatus,
+						SubmitTime:   submitter.SubmitTime,
+						FilePath:     submitter.FilePath,
+						FileName:     submitter.FileName,
+						Recommend:    submitter.Recommend,
+						Sort:         submitter.Sort,
 					},
 				},
 			}

@@ -66,5 +66,7 @@ func SetApiGroupRoutes(router *gin.Engine) *gin.Engine {
 	apiGroup.GET("/review/:id", controllers.ReviewDetailList)
 	apiGroup.PUT("/review/status", controllers.ReviewStatus)
 	apiGroup.GET("/review/export", controllers.ReviewExport)
+	// 我的任务中心
+	apiGroup.GET("/my-task", controllers.MyTaskList)
 	return router
 }
