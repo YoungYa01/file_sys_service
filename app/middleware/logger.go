@@ -26,7 +26,6 @@ func LogMiddleware(db *gorm.DB) gin.HandlerFunc {
 			ApiUrl:    c.Request.URL.Path,
 			Ip:        c.ClientIP(),
 		}
-
 		// 读取请求参数
 		var paramsBytes []byte
 		if c.Request.Method != http.MethodGet {
@@ -37,7 +36,6 @@ func LogMiddleware(db *gorm.DB) gin.HandlerFunc {
 			}
 			logEntry.Params = string(paramsBytes)
 		}
-
 		// 处理请求前获取用户信息
 		if claims, exists := c.Get("claims"); exists {
 			if customClaims, ok := claims.(*models.CustomClaims); ok {
@@ -45,20 +43,16 @@ func LogMiddleware(db *gorm.DB) gin.HandlerFunc {
 				logEntry.UserName = customClaims.UserName // 需要确保claims包含用户名
 			}
 		}
-
 		// 解析User-Agent
 		if uaString := c.Request.UserAgent(); uaString != "" {
 			ua := user_agent.New(uaString)
 			logEntry.Browser, _ = ua.Browser()
 			logEntry.Os = ua.OS()
 		}
-
 		// 处理请求
 		c.Next()
-
 		// 补充请求后信息
 		logEntry.UpdatedAt = time.Now()
-
 		if c.Request.Method != http.MethodGet {
 			// 异步处理地理位置和存储
 			go func(entry models.Log) {

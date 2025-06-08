@@ -65,6 +65,7 @@ func CreateCollectionService(creator models.Collection) error {
 		Founder:         creator.Founder,
 		Status:          creator.Status,
 		Pinned:          creator.Pinned,
+		Templates:       creator.Templates,
 		SubmittedNumber: 0, // 初始化已提交数量
 		TotalNumber:     len(creator.Submitters),
 		EndTime:         endTime,
@@ -326,6 +327,7 @@ func CollectionListService(c *gin.Context) (models.Result, error) {
 		models.CollectionCreator
 		Founder models.User
 	}, len(baseCollections))
+
 	for i, c := range baseCollections {
 		result[i].CollectionCreator = c
 		var reviewers []models.CollectionReviewer
@@ -340,6 +342,22 @@ func CollectionListService(c *gin.Context) (models.Result, error) {
 			First(&f)
 		if f.ID != 0 {
 			result[i].Founder = f
+		}
+		var submitters []models.CollectionSubmitter
+		var submitNumber int64
+		if err := config.DB.Model(&models.CollectionSubmitter{}).
+			Where("collection_id = ? AND task_status = ?", c.ID, 2).
+			Count(&submitNumber).
+			Find(&submitters).Error; err == nil {
+			var counter = make(map[string]int)
+			for _, submitter := range submitters {
+				if submitter.TaskStatus == 2 {
+					counter[submitter.UserName]++
+				} else {
+					counter[submitter.UserName] = 0
+				}
+			}
+			result[i].SubmittedNumber = len(counter)
 		}
 	}
 

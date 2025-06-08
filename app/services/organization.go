@@ -31,12 +31,10 @@ func OrgListService(c *gin.Context) (models.Result, error) {
 
 func OrgUserListService() (models.Result, error) {
 	var orgList []models.Organization
-
 	baseQuery := config.DB.Model(&models.Organization{}).Order("`sort` ASC")
 	if err := baseQuery.Find(&orgList).Error; err != nil {
 		return models.Fail(http.StatusInternalServerError, "查询失败"+err.Error()), err
 	}
-
 	// 转换为树形结构
 	treeData := ConvertUserToTree(orgList)
 	b, _ := json.MarshalIndent(treeData, "", "  ")

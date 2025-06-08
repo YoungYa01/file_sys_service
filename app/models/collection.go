@@ -19,6 +19,7 @@ type Collection struct {
 	Reviewers       []int     `json:"reviewers"`
 	EndTime         string    `json:"end_time"`
 	CreatedAt       time.Time `json:"created_at" gorm:"autoCreateTime"`
+	Templates       string    `json:"templates"`
 }
 
 type CollectionCreator struct {
@@ -36,6 +37,7 @@ type CollectionCreator struct {
 	TotalNumber     int       `json:"total_number"`
 	EndTime         time.Time `json:"end_time"`
 	CreatedAt       time.Time `json:"created_at" gorm:"autoCreateTime"`
+	Templates       string    `json:"templates"`
 	// 添加关联关系配置
 	Submitters []CollectionSubmitter `json:"submitters" gorm:"foreignKey:CollectionID;references:ID"`
 	Reviewers  []CollectionReviewer  `json:"reviewers" gorm:"foreignKey:CollectionID;references:ID"`

@@ -19,27 +19,23 @@ const (
 func uploadHandler(c *gin.Context) {
 	chunkIndex := c.Query("index")
 	fileName := c.Query("filename")
-
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	chunkDir := filepath.Join(uploadDir, fileName+".chunks")
 	err = os.MkdirAll(chunkDir, os.ModePerm)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	chunkPath := filepath.Join(chunkDir, chunkIndex)
 	err = c.SaveUploadedFile(file, chunkPath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "分片上传成功", "index": chunkIndex})
 }
 

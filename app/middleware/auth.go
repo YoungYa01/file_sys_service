@@ -15,7 +15,6 @@ func Auth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-
 		// 修改Claims类型为CustomClaims
 		claims, err := jwt.ParseWithClaims(
 			token,
@@ -23,12 +22,10 @@ func Auth() gin.HandlerFunc {
 			func(token *jwt.Token) (interface{}, error) {
 				return []byte(config.AppGlobalConfig.Jwt.Secret), nil
 			})
-
 		if err != nil {
 			handleJWTError(c, err)
 			return
 		}
-
 		// 修改类型断言
 		if customClaims, ok := claims.Claims.(*models.CustomClaims); ok && claims.Valid {
 			c.Set("claims", customClaims) // 存储完整的自定义Claims

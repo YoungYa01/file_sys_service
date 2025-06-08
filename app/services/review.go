@@ -234,21 +234,17 @@ func ReviewExportService(c *gin.Context) (models.Result, error) {
 	if err != nil {
 		return models.Fail(http.StatusInternalServerError, "查询文件失败"), err
 	}
-
 	// 创建临时压缩文件
 	zippedFileName := "download_" + time.Now().Format("20060102150405") + ".zip"
 	zippedFilePath := filepath.Join(os.TempDir(), zippedFileName)
-
 	zipFile, err := os.Create(zippedFilePath)
 	if err != nil {
 		return models.Fail(http.StatusInternalServerError, "创建压缩包失败"), err
 	}
 	defer zipFile.Close()
 	defer os.Remove(zippedFilePath) // 确保最终删除临时文件
-
 	writer := zip.NewWriter(zipFile)
 	defer writer.Close()
-
 	for _, file := range files {
 		getwd, _ := os.Getwd()
 		filePath := filepath.FromSlash(filepath.Join(getwd, file.FilePath))
@@ -296,16 +292,13 @@ func ReviewExportService(c *gin.Context) (models.Result, error) {
 			return models.Fail(http.StatusInternalServerError, "添加文件到压缩包失败: "+err.Error()), err
 		}
 	}
-
 	// 必须关闭writer和zipFile以确保所有数据写入磁盘
 	writer.Close()
 	zipFile.Close()
-
 	// 设置响应头
 	c.Header("Content-Type", "application/zip")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", zippedFileName))
 	c.Header("Content-Transfer-Encoding", "binary")
-
 	// 发送文件并终止后续处理
 	c.File(zippedFilePath)
 

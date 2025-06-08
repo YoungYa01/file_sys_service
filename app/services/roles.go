@@ -83,12 +83,12 @@ func RoleUpdateService(c *gin.Context) (models.Result, error) {
 }
 
 func RoleDeleteService(c *gin.Context) (models.Result, error) {
+	var roleId = c.Param("id")
 	var role models.Role
-	if err := c.ShouldBindJSON(&role); err != nil {
-		log.Println("RoleDeleteService err:", err)
-		return models.Fail(http.StatusBadRequest, "参数错误"+err.Error()), err
+	if err := config.DB.Where("id = ?", roleId).First(&role).Error; err != nil {
+		return models.Fail(http.StatusBadRequest, "删除失败"+err.Error()), err
 	}
-	if err := config.DB.Where("id = ?", role.ID).Delete(&role).Error; err != nil {
+	if err := config.DB.Where("id = ?", roleId).Delete(&role).Error; err != nil {
 		return models.Fail(http.StatusBadRequest, "删除失败"+err.Error()), err
 	}
 	return models.Success("删除成功"), nil
